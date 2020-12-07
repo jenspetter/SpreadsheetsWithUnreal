@@ -102,24 +102,24 @@ FString UHttpRequest::GetTokenRequest(FSpreadsheetCrendentials a_Credentials)
 	return FString(url);
 }
 
-void USpreadsheetsWithUnrealBPLibrary::ReadCell(FSpreadsheetCrendentials a_Credentials, UReadCellRequest* a_Request,
-	const FReadCellRequestFinished& a_Callback)
+void USpreadsheetsWithUnrealBPLibrary::ReadCell(FSpreadsheetCrendentials a_Credentials, struct FBaseRequest a_BaseRequest,
+	struct FReadCellRequest a_CellRequest, const FReadCellRequestFinished& a_Callback)
 {
 	UReadCellResponse* response = NewObject<UReadCellResponse>(UReadCellResponse::StaticClass());
 	response->m_RequestFinishedDelegate = a_Callback;
-	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + a_Request->m_SheetId + FString("/values/") +
-		a_Request->m_Tab + FString("!") + a_Request->m_Cell + FString("?access_token=");
+	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + a_BaseRequest.m_SheetId + FString("/values/") +
+		a_BaseRequest.m_Tab + FString("!") + a_CellRequest.m_Cell + FString("?access_token=");
 
 	UHttpRequest::Get(a_Credentials, url, *response);
 }
 
-void USpreadsheetsWithUnrealBPLibrary::ReadRange(FSpreadsheetCrendentials a_Credentials, UReadRangeRequest* a_Request,
-	const FReadRangeRequestFinished& a_Callback)
+void USpreadsheetsWithUnrealBPLibrary::ReadRange(FSpreadsheetCrendentials a_Credentials, struct FBaseRequest a_BaseRequest,
+	struct FReadRangeRequest a_RangeRequest, const FReadRangeRequestFinished& a_Callback)
 {
 	UReadRangeResponse* response = NewObject<UReadRangeResponse>(UReadRangeResponse::StaticClass());
 	response->m_RequestFinishedDelegate = a_Callback;
-	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + a_Request->m_SheetId + FString("/values/") +
-		a_Request->m_Tab + FString("!") + a_Request->m_Range + FString("?access_token=");
+	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + a_BaseRequest.m_SheetId + FString("/values/") +
+		a_BaseRequest.m_Tab + FString("!") + a_RangeRequest.m_Range + FString("?access_token=");
 
 	UHttpRequest::Get(a_Credentials, url, *response);
 }

@@ -41,7 +41,7 @@ class USpreadsheetsWithUnrealBPLibrary : public UBlueprintFunctionLibrary
 	GENERATED_UCLASS_BODY()
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Cell", Keywords = "JSheets reading"), Category = "JSheetsReading")
-    static void ReadCell(FSpreadsheetCrendentials a_Credentials, UReadCellRequest* a_Request, const FReadCellRequestFinished& a_Callback);
+    static void ReadCell(FSpreadsheetCrendentials a_Credentials, struct FBaseRequest a_BaseRequest, struct FReadCellRequest a_CellRequest, const FReadCellRequestFinished& a_Callback);
     UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Range", Keywords = "JSheets reading"), Category = "JSheetsReading")
-    static void ReadRange(FSpreadsheetCrendentials a_Credentials, UReadRangeRequest* a_Request, const FReadRangeRequestFinished& a_Callback);
+    static void ReadRange(FSpreadsheetCrendentials a_Credentials, struct FBaseRequest a_BaseRequest, struct FReadRangeRequest a_RangeRequest, const FReadRangeRequestFinished& a_Callback);
 };
