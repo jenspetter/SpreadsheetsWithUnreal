@@ -123,3 +123,29 @@ void USpreadsheetsWithUnrealBPLibrary::ReadRange(FSpreadsheetCrendentials a_Cred
 
 	UHttpRequest::Get(a_Credentials, url, *response);
 }
+
+FSpreadsheetCrendentials USpreadsheetsWithUnrealBPLibrary::GetSpreadsheetCredentials(FString a_CredentialName)
+{
+	UCredentialSettings* m_EditorSettingsSingleton = nullptr;
+	if (!m_EditorSettingsSingleton)
+	{
+		static const TCHAR* settingsContainerName = TEXT("TimsToolkitLoadingScreenSettingsContainer");
+		m_EditorSettingsSingleton = FindObject<UCredentialSettings>(GetTransientPackage(), settingsContainerName);
+
+		if (!m_EditorSettingsSingleton)
+		{
+			m_EditorSettingsSingleton = NewObject<UCredentialSettings>(GetTransientPackage(), UCredentialSettings::StaticClass(), settingsContainerName);
+			m_EditorSettingsSingleton->AddToRoot();
+		}
+	}
+
+	for(auto it = m_EditorSettingsSingleton->m_CredentialOptions.begin(); it != m_EditorSettingsSingleton->m_CredentialOptions.end(); ++it)
+	{
+	    if(it.Key() == a_CredentialName)
+	    {
+			return it.Value();
+	    }
+	}
+
+	return FSpreadsheetCrendentials();
+}

@@ -14,10 +14,10 @@ struct FSpreadsheetCrendentials
 {
 	GENERATED_USTRUCT_BODY();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "PathToOAuthCredentialsFile", Category = "JSheets | Credentials")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "PathToOAuthCredentialsFile", Category = "Spreadsheets With Unreal | Credentials")
 	FString m_PathToOAuthCredentialsFile;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "RefreshToken", Category = "JSheets | Credentials")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "RefreshToken", Category = "Spreadsheets With Unreal | Credentials")
 	FString m_RefreshToken;
 };
 
@@ -27,5 +27,5 @@ class SPREADSHEETSWITHUNREAL_API UCredentialSettings : public UObject
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(config, EditAnywhere, DisplayName = "CredentialOptions", Category = Settings)
-	TArray<struct FSpreadsheetCrendentials> m_CredentialOptions;
+	TMap<FString, struct FSpreadsheetCrendentials> m_CredentialOptions;
 };

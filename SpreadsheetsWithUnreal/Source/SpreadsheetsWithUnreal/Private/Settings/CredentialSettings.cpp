@@ -13,8 +13,8 @@ UCredentialSettings::UCredentialSettings(const FObjectInitializer& ObjectInitial
 	if (ISettingsModule * SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
 		// Register the settings
-		ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "JSheets",
-			LOCTEXT("RuntimeGeneralSettingsName", "JSheets"),
+		ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "Spreadsheets With Unreal",
+			LOCTEXT("RuntimeGeneralSettingsName", "Spreadsheets With Unreal"),
 			LOCTEXT("RuntimeGeneralSettingsDescription", "Project settings for the JSheets plugin"),
 			GetMutableDefault<UCredentialSettings>()
 		);
