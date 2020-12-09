@@ -51,6 +51,7 @@ void UHttpRequest::Get(FSpreadsheetCrendentials a_Credentials, FString a_Url, UB
 
 		if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid())
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Begin Token Request"));
 			FString token = JsonObject->GetStringField("access_token");
 			FString newUrl = a_Url + token;
 
@@ -72,7 +73,7 @@ void UHttpRequest::Get(FSpreadsheetCrendentials a_Credentials, FString a_Url, UB
 
 FString UHttpRequest::GetTokenRequest(FSpreadsheetCrendentials a_Credentials)
 {
-	FString contentData = IPluginManager::Get().FindPlugin(TEXT("JSheets"))->GetContentDir() + FString("/") + a_Credentials.m_PathToOAuthCredentialsFile;
+	FString contentData = IPluginManager::Get().FindPlugin(TEXT("SpreadsheetsWithUnreal"))->GetContentDir() + FString("/") + a_Credentials.m_PathToOAuthCredentialsFile;
 	FString fileData = "";
 	FFileHelper::LoadFileToString(fileData, *contentData);
 
@@ -121,6 +122,18 @@ void USpreadsheetsWithUnrealBPLibrary::ReadRange(FSpreadsheetCrendentials a_Cred
 	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + a_BaseRequest.m_SheetId + FString("/values/") +
 		a_BaseRequest.m_Tab + FString("!") + a_RangeRequest.m_Range + FString("?access_token=");
 
+	UHttpRequest::Get(a_Credentials, url, *response);
+}
+
+void USpreadsheetsWithUnrealBPLibrary::Export(FSpreadsheetCrendentials a_Credentials, FBaseRequest a_BaseRequest,
+	FExportRequest a_ExportRequest, UDataTable* a_DataTable, const FExportRequestFinished& a_Callback)
+{
+	UExportResponse* response = NewObject<UExportResponse>(UExportResponse::StaticClass());
+	response->SetExportData(a_DataTable, a_ExportRequest.m_ExportFormat, a_ExportRequest.m_OutputDestination);
+	response->m_RequestFinishedDelegate = a_Callback;
+	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + a_BaseRequest.m_SheetId + FString("/values/") +
+		a_BaseRequest.m_Tab + FString("!") + a_ExportRequest.m_Range + FString("?access_token=");
+	UE_LOG(LogTemp, Warning, TEXT("Begin Get Request"));
 	UHttpRequest::Get(a_Credentials, url, *response);
 }
 

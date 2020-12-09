@@ -26,6 +26,8 @@
 *	https://wiki.unrealengine.com/Custom_Blueprint_Node_Creation
 */
 
+class UDataTable;
+
 class UHttpRequest
 {
 public:
@@ -44,6 +46,9 @@ class USpreadsheetsWithUnrealBPLibrary : public UBlueprintFunctionLibrary
     static void ReadCell(FSpreadsheetCrendentials a_Credentials, struct FBaseRequest a_BaseRequest, struct FReadCellRequest a_CellRequest, const FReadCellRequestFinished& a_Callback);
     UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Range", Keywords = "JSheets reading"), Category = "JSheetsReading")
     static void ReadRange(FSpreadsheetCrendentials a_Credentials, struct FBaseRequest a_BaseRequest, struct FReadRangeRequest a_RangeRequest, const FReadRangeRequestFinished& a_Callback);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Export Spreadsheet", Keywords = "Spreadsheets export"), Category = "SpreadsheetsExport")
+	static void Export(FSpreadsheetCrendentials a_Credentials, struct FBaseRequest a_BaseRequest, struct FExportRequest a_ExportRequest, UDataTable* a_DataTable, const FExportRequestFinished& a_Callback);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "GetSpreadsheetCredentials", Keywords = "Spreadsheets settings"), Category = "Settings")
     static FSpreadsheetCrendentials GetSpreadsheetCredentials(FString a_CredentialName);

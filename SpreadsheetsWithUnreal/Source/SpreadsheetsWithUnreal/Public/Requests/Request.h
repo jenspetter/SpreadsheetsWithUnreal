@@ -9,6 +9,12 @@
 /**
  * 
  */
+
+UENUM(BlueprintType)
+enum EExportFormat {
+	CSV		UMETA(DisplayName = "CSV")
+};
+
 USTRUCT(BlueprintType)
 struct FBaseRequest
 {
@@ -38,4 +44,18 @@ struct FReadRangeRequest
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, DisplayName = "Range", Category = "Spreadsheets | Request")
 	FString m_Range;
+};
+
+USTRUCT(BlueprintType)
+struct FExportRequest
+{
+	GENERATED_USTRUCT_BODY();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, DisplayName = "Export Format", Category = "Spreadsheets | Export")
+	TEnumAsByte<EExportFormat> m_ExportFormat;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, DisplayName = "Range", Category = "Spreadsheets | Request")
+	FString m_Range;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, DisplayName = "Export Output Destination", Category = "Spreadsheets | Export")
+	FString m_OutputDestination;
 };

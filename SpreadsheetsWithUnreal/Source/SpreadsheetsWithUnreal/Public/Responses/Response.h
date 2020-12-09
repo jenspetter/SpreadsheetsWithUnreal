@@ -6,6 +6,8 @@
 #include "UObject/NoExportTypes.h"
 #include "HttpModule.h"
 #include "Http.h"
+#include "Requests/Request.h"
+#include "Engine/DataTable.h"
 #include "Response.generated.h"
 
 /**
@@ -14,6 +16,7 @@
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FTokenRequestFinished, class UTokenResponse*, TokenRequest, bool, Successful);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FReadCellRequestFinished, class UReadCellResponse*, ReadCellRequest, bool, Successful);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FReadRangeRequestFinished, class UReadRangeResponse*, ReadRangeRequest, bool, Successful);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FExportRequestFinished, bool, Successful);
 
 UCLASS(BlueprintType, Blueprintable)
 class SPREADSHEETSWITHUNREAL_API UBaseResponse : public UObject
@@ -70,4 +73,22 @@ public:
 
 private:
 	TArray<FString> m_Range;
+};
+
+UCLASS(BlueprintType, Blueprintable)
+class SPREADSHEETSWITHUNREAL_API UExportResponse : public UBaseResponse
+{
+	GENERATED_BODY()
+
+public:
+	void SetExportData(UDataTable* a_DataTable, TEnumAsByte<EExportFormat> a_ExportFormat, FString a_OutputDestination);
+    void OnRequestFinished(FHttpRequestPtr request, FHttpResponsePtr response, bool success);
+
+public:
+	FExportRequestFinished m_RequestFinishedDelegate;
+
+private:
+	UDataTable* m_DataTable;
+	TEnumAsByte<EExportFormat> m_ExportFormat;
+	FString m_OutputDestination;
 };
