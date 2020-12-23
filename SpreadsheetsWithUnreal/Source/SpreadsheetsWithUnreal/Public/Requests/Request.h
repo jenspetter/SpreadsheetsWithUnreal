@@ -7,55 +7,107 @@
 #include "Request.generated.h"
 
 /**
- * 
+ *
  */
+UENUM(BlueprintType)
+enum EExportFormat
+{
+    CSV
+};
 
 UENUM(BlueprintType)
-enum EExportFormat {
-	CSV		UMETA(DisplayName = "CSV")
+enum ESpreadsheetDimension
+{
+    ROWS,
+    COLUMNS
 };
 
 USTRUCT(BlueprintType)
-struct FBaseRequest
+struct FSpreadsheetArray
 {
-	GENERATED_USTRUCT_BODY();
+    GENERATED_USTRUCT_BODY();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "Sheet Token", Category = "Spreadsheets | Request")
-	FString m_Token;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "Sheet ID", Category = "Spreadsheets | Request")
-	FString m_SheetId;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "Tab", Category = "Spreadsheets | Request")
-	FString m_Tab;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+        TArray<FString> Elements;
 };
 
 USTRUCT(BlueprintType)
-struct FReadCellRequest
-{
-	GENERATED_USTRUCT_BODY();
+struct FBaseRequest {
+    GENERATED_USTRUCT_BODY();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, DisplayName = "Cell", Category = "Spreadsheets | Request")
-	FString m_Cell;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+    FString SheetId;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+    FString Tab;
 };
 
 USTRUCT(BlueprintType)
-struct FReadRangeRequest
-{
-	GENERATED_USTRUCT_BODY();
+struct FReadCellRequest {
+    GENERATED_USTRUCT_BODY();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, DisplayName = "Range", Category = "Spreadsheets | Request")
-	FString m_Range;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+    FString Cell;
 };
 
 USTRUCT(BlueprintType)
-struct FExportRequest
+struct FReadRangeRequest {
+    GENERATED_USTRUCT_BODY();
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+    FString Range;
+};
+
+USTRUCT(BlueprintType)
+struct FWriteToCellRequest
 {
-	GENERATED_USTRUCT_BODY();
+    GENERATED_USTRUCT_BODY();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, DisplayName = "Export Format", Category = "Spreadsheets | Export")
-	TEnumAsByte<EExportFormat> m_ExportFormat;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+    FString CellToWriteTo;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+    FString NewCellContent;
+};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, DisplayName = "Range", Category = "Spreadsheets | Request")
-	FString m_Range;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, DisplayName = "Export Output Destination", Category = "Spreadsheets | Export")
-	FString m_OutputDestination;
+USTRUCT(BlueprintType)
+struct FWriteToRangeRequest
+{
+    GENERATED_USTRUCT_BODY();
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+    FString RangeToWriteTo;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+    TEnumAsByte<ESpreadsheetDimension> Dimension;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+    TArray<FSpreadsheetArray> NewRangeContent;
+};
+
+USTRUCT(BlueprintType)
+struct FClearCellRequest
+{
+    GENERATED_USTRUCT_BODY();
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+    FString Cell;
+};
+
+USTRUCT(BlueprintType, DisplayName = "Clear Range Request")
+struct FClearRangeRequest
+{
+    GENERATED_USTRUCT_BODY();
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+    FString Range;
+};
+
+USTRUCT(BlueprintType)
+struct FExportRequest {
+    GENERATED_USTRUCT_BODY();
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+        TEnumAsByte<EExportFormat> ExportFormat;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+        FString Range;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
+        FString OutputDestination;
 };

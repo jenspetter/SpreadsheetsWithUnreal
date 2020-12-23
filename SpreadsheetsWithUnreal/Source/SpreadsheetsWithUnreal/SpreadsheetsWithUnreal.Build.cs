@@ -36,8 +36,6 @@ public class SpreadsheetsWithUnreal : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-				"Slate",
-				"SlateCore",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
@@ -49,5 +47,20 @@ public class SpreadsheetsWithUnreal : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
-	}
+
+        if (Target.Type == TargetRules.TargetType.Editor)
+        {
+            PublicIncludePathModuleNames.AddRange(
+                new string[] {
+                    "Settings"
+                }
+            );
+
+            DynamicallyLoadedModuleNames.AddRange(
+                new string[] {
+                    "Settings"
+                }
+            );
+        }
+    }
 }
