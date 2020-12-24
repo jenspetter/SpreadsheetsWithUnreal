@@ -15,14 +15,16 @@
  */
 USTRUCT(BlueprintType, Blueprintable)
 struct SPREADSHEETSWITHUNREAL_API FReadCellResponse {
-  GENERATED_USTRUCT_BODY()
+    GENERATED_USTRUCT_BODY()
 
-  FString Cell;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Response")
+    FString Cell;
 };
 
 USTRUCT(BlueprintType, Blueprintable)
 struct SPREADSHEETSWITHUNREAL_API FReadRangeResponse {
-  GENERATED_USTRUCT_BODY()
+    GENERATED_USTRUCT_BODY()
 
-  TArray<FString> Range;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Response")
+    TArray<FSpreadsheetArray> Range;
 };

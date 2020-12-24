@@ -296,13 +296,17 @@ void USpreadsheetReadWrite::OnRequestReadRangeFinished(FHttpRequestPtr Request, 
         TJsonReaderFactory<>::Create(*Response->GetContentAsString());
 
         if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid()) {
-            auto doubleArrayResponse = JsonObject->GetArrayField("values");
+            auto firstDimension = JsonObject->GetArrayField("values");
 
-            for (auto arr : doubleArrayResponse) {
-                auto elResponse = arr->AsArray();
-                for (auto el : elResponse) {
-                    response.Range.Add(el->AsString());
+            for (auto dimensionElement: firstDimension) {
+                auto dimensionElementAsArray = dimensionElement->AsArray();
+                FSpreadsheetArray spreadsheetArray;
+
+                for (auto arrayElement : dimensionElementAsArray) {
+                    spreadsheetArray.Elements.Add(arrayElement->AsString());
                 }
+
+                response.Range.Add(spreadsheetArray);
             }
         }
     }

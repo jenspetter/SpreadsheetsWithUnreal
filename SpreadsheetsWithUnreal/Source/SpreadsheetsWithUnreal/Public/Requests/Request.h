@@ -28,7 +28,7 @@ struct FSpreadsheetArray
     GENERATED_USTRUCT_BODY();
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
-        TArray<FString> Elements;
+    TArray<FString> Elements;
 };
 
 USTRUCT(BlueprintType)
@@ -104,10 +104,10 @@ struct FExportRequest {
     GENERATED_USTRUCT_BODY();
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
-        TEnumAsByte<EExportFormat> ExportFormat;
+    TEnumAsByte<EExportFormat> ExportFormat;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
-        FString Range;
+    FString Range;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spreadsheets With Unreal | Request")
-        FString OutputDestination;
+    FString OutputDestination;
 };
