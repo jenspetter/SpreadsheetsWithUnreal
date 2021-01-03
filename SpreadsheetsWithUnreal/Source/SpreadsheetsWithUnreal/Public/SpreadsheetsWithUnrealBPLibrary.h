@@ -53,9 +53,9 @@ enum ESpreadsheetReadWriteType
     ClearRange,
 };
 
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FReadCellRequestFinished, FReadCellResponse, ReadCellRequest, bool, Successful);
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FReadRangeRequestFinished, FReadRangeResponse, ReadRangeRequest, bool, Successful);
-DECLARE_DYNAMIC_DELEGATE_OneParam(FRequestFinished, bool, Successful);
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FReadCellRequestFinishedDelegate, FReadCellResponse, ReadCellRequest, bool, Successful);
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FReadRangeRequestFinishedDelegate, FReadRangeResponse, ReadRangeRequest, bool, Successful);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FRequestFinishedDelegate, bool, Successful);
 
 class USpreadsheetHttp
 {
@@ -85,22 +85,22 @@ class USpreadsheetReadWrite : public UBlueprintFunctionLibrary
 
 public:
     UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Cell", Keywords = "Spreadsheets Read"), Category = "Spreadsheets With Unreal | Read")
-    static void ReadCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadCellRequest CellRequest, const FReadCellRequestFinished &OnReadCellRequestFinished);
+    static void ReadCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadCellRequest CellRequest, const FReadCellRequestFinishedDelegate &OnReadCellRequestFinished);
     UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Range", Keywords = "Spreadsheets Read"), Category = "Spreadsheets With Unreal | Read")
-    static void ReadRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadRangeRequest RangeRequest, const FReadRangeRequestFinished &OnReadRangeRequestFinished);
+    static void ReadRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadRangeRequest RangeRequest, const FReadRangeRequestFinishedDelegate &OnReadRangeRequestFinished);
 
     UFUNCTION(BlueprintCallable, meta = (DisplayName = "Write To Cell", Keywords = "Spreadsheets Write"), Category = "Spreadsheets With Unreal | Write")
-    static void WriteToCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FWriteToCellRequest WriteToCellRequest, const FRequestFinished &OnWriteToCellRequestFinished);
+    static void WriteToCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FWriteToCellRequest WriteToCellRequest, const FRequestFinishedDelegate &OnWriteToCellRequestFinished);
     UFUNCTION(BlueprintCallable, meta = (DisplayName = "Write To Range", Keywords = "Spreadsheets Write"), Category = "Spreadsheets With Unreal | Write")
-    static void WriteToRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FWriteToRangeRequest WriteToRangeRequest, const FRequestFinished &OnWriteToRangeRequestFinished);
+    static void WriteToRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FWriteToRangeRequest WriteToRangeRequest, const FRequestFinishedDelegate &OnWriteToRangeRequestFinished);
 
     UFUNCTION(BlueprintCallable, meta = (DisplayName = "Clear Cell", Keywords = "Spreadsheets Clear"), Category = "Spreadsheets With Unreal | Clear")
-    static void ClearCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FClearCellRequest ClearCellRequest, const FRequestFinished &OnClearCellRequestFinished);
+    static void ClearCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FClearCellRequest ClearCellRequest, const FRequestFinishedDelegate &OnClearCellRequestFinished);
     UFUNCTION(BlueprintCallable, meta = (DisplayName = "Clear Range", Keywords = "Spreadsheets Clear"), Category = "Spreadsheets With Unreal | Clear")
-    static void ClearRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FClearRangeRequest ClearRangeRequest, const FRequestFinished &OnClearRangeRequestFinished);
+    static void ClearRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FClearRangeRequest ClearRangeRequest, const FRequestFinishedDelegate &OnClearRangeRequestFinished);
 
     UFUNCTION(BlueprintCallable, meta = (DisplayName = "Export Spreadsheet", Keywords = "Spreadsheets Export"), Category = "Spreadsheets With Unreal | Export")
-    static void Export(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FExportRequest ExportRequest, const FRequestFinished& OnExportRequestFinished);
+    static void Export(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FExportRequest ExportRequest, const FRequestFinishedDelegate& OnExportRequestFinished);
 
 private:
     static void OnRequestReadCellFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success);
@@ -120,15 +120,15 @@ public:
     friend class USpreadsheetHttp;
 
 private:
-    static FReadCellRequestFinished ReadCellRequestFinished;
-    static FReadRangeRequestFinished ReadRangeRequestFinished;
+    static FReadCellRequestFinishedDelegate ReadCellRequestFinishedDelegate;
+    static FReadRangeRequestFinishedDelegate ReadRangeRequestFinishedDelegate;
 
-    static FRequestFinished WriteToCellRequestFinished;
-    static FRequestFinished WriteToRangeRequestFinished;
+    static FRequestFinishedDelegate WriteToCellRequestFinishedDelegate;
+    static FRequestFinishedDelegate WriteToRangeRequestFinishedDelegate;
 
     static FExportRequest LocalExportRequest;
-    static FRequestFinished ExportRequestFinished;
+    static FRequestFinishedDelegate ExportRequestFinishedDelegate;
 
-    static FRequestFinished ClearCellRequestFinished;
-    static FRequestFinished ClearRangeRequestFinished;
+    static FRequestFinishedDelegate ClearCellRequestFinishedDelegate;
+    static FRequestFinishedDelegate ClearRangeRequestFinishedDelegate;
 };

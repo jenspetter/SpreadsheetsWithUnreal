@@ -7,17 +7,17 @@
 #include "SpreadsheetsWithUnreal.h"
 #include "JsonObjectConverter.h"
 
-FReadCellRequestFinished USpreadsheetReadWrite::ReadCellRequestFinished;
-FReadRangeRequestFinished USpreadsheetReadWrite::ReadRangeRequestFinished;
+FReadCellRequestFinishedDelegate USpreadsheetReadWrite::ReadCellRequestFinishedDelegate;
+FReadRangeRequestFinishedDelegate USpreadsheetReadWrite::ReadRangeRequestFinishedDelegate;
 
-FRequestFinished USpreadsheetReadWrite::WriteToCellRequestFinished;
-FRequestFinished USpreadsheetReadWrite::WriteToRangeRequestFinished;
+FRequestFinishedDelegate USpreadsheetReadWrite::WriteToCellRequestFinishedDelegate;
+FRequestFinishedDelegate USpreadsheetReadWrite::WriteToRangeRequestFinishedDelegate;
 
 FExportRequest USpreadsheetReadWrite::LocalExportRequest;
-FRequestFinished USpreadsheetReadWrite::ExportRequestFinished;
+FRequestFinishedDelegate USpreadsheetReadWrite::ExportRequestFinishedDelegate;
 
-FRequestFinished USpreadsheetReadWrite::ClearCellRequestFinished;
-FRequestFinished USpreadsheetReadWrite::ClearRangeRequestFinished;
+FRequestFinishedDelegate USpreadsheetReadWrite::ClearCellRequestFinishedDelegate;
+FRequestFinishedDelegate USpreadsheetReadWrite::ClearRangeRequestFinishedDelegate;
 
 #pragma region Http
 void USpreadsheetHttp::SendRequest(const FSpreadsheetCrendentials Credentials, const FString Url, const TEnumAsByte<ESpreadsheetHttpRequestType> HttpRequestType, const TEnumAsByte<ESpreadsheetReadWriteType> SpreadsheetRequestType, const FString Body)
@@ -180,9 +180,9 @@ FSpreadsheetCrendentials USpreadsheetFileSystem::GetSpreadsheetCredentials(const
 #pragma region ReadWrite
 USpreadsheetReadWrite::USpreadsheetReadWrite(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer){}
 
-void USpreadsheetReadWrite::ReadCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadCellRequest CellRequest, const FReadCellRequestFinished &OnReadCellRequestFinished)
+void USpreadsheetReadWrite::ReadCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadCellRequest CellRequest, const FReadCellRequestFinishedDelegate &OnReadCellRequestFinished)
 {
-    ReadCellRequestFinished = OnReadCellRequestFinished;
+    ReadCellRequestFinishedDelegate = OnReadCellRequestFinished;
 
     //Construct Url
     FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
@@ -192,9 +192,9 @@ void USpreadsheetReadWrite::ReadCell(const FSpreadsheetCrendentials Credentials,
     USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::GET, ESpreadsheetReadWriteType::ReadCell);
 }
 
-void USpreadsheetReadWrite::ReadRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadRangeRequest RangeRequest, const FReadRangeRequestFinished &OnReadRangeRequestFinished)
+void USpreadsheetReadWrite::ReadRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadRangeRequest RangeRequest, const FReadRangeRequestFinishedDelegate &OnReadRangeRequestFinished)
 {
-    ReadRangeRequestFinished = OnReadRangeRequestFinished;
+    ReadRangeRequestFinishedDelegate = OnReadRangeRequestFinished;
 
     //Construct Url
     FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
@@ -204,9 +204,9 @@ void USpreadsheetReadWrite::ReadRange(const FSpreadsheetCrendentials Credentials
     USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::GET, ESpreadsheetReadWriteType::ReadRange);
 }
 
-void USpreadsheetReadWrite::WriteToCell(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FWriteToCellRequest WriteToCellRequest, const FRequestFinished& OnWriteToCellRequestFinished)
+void USpreadsheetReadWrite::WriteToCell(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FWriteToCellRequest WriteToCellRequest, const FRequestFinishedDelegate& OnWriteToCellRequestFinished)
 {
-    WriteToCellRequestFinished = OnWriteToCellRequestFinished;
+    WriteToCellRequestFinishedDelegate = OnWriteToCellRequestFinished;
 
     // Construct Url
     FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + BaseRequest.SheetId + FString("/values/") +
@@ -218,9 +218,9 @@ void USpreadsheetReadWrite::WriteToCell(const FSpreadsheetCrendentials Credentia
     USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::PUT, ESpreadsheetReadWriteType::WriteToCell, body);
 }
 
-void USpreadsheetReadWrite::WriteToRange(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FWriteToRangeRequest WriteToRangeRequest, const FRequestFinished& OnWriteToRangeRequestFinished)
+void USpreadsheetReadWrite::WriteToRange(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FWriteToRangeRequest WriteToRangeRequest, const FRequestFinishedDelegate& OnWriteToRangeRequestFinished)
 {
-    WriteToRangeRequestFinished = OnWriteToRangeRequestFinished;
+    WriteToRangeRequestFinishedDelegate = OnWriteToRangeRequestFinished;
 
     // Construct Url
     FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + BaseRequest.SheetId + FString("/values/") +
@@ -233,9 +233,9 @@ void USpreadsheetReadWrite::WriteToRange(const FSpreadsheetCrendentials Credenti
     USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::PUT, ESpreadsheetReadWriteType::WriteToRange, body);
 }
 
-void USpreadsheetReadWrite::ClearCell(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FClearCellRequest ClearCellRequest, const FRequestFinished& OnClearCellRequestFinished)
+void USpreadsheetReadWrite::ClearCell(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FClearCellRequest ClearCellRequest, const FRequestFinishedDelegate& OnClearCellRequestFinished)
 {
-    ClearCellRequestFinished = OnClearCellRequestFinished;
+    ClearCellRequestFinishedDelegate = OnClearCellRequestFinished;
 
     //Construct Url
     FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
@@ -245,9 +245,9 @@ void USpreadsheetReadWrite::ClearCell(const FSpreadsheetCrendentials Credentials
     USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::POST, ESpreadsheetReadWriteType::ClearCell);
 }
 
-void USpreadsheetReadWrite::ClearRange(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FClearRangeRequest ClearRangeRequest, const FRequestFinished& OnClearRangeRequestFinished)
+void USpreadsheetReadWrite::ClearRange(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FClearRangeRequest ClearRangeRequest, const FRequestFinishedDelegate& OnClearRangeRequestFinished)
 {
-    ClearRangeRequestFinished = OnClearRangeRequestFinished;
+    ClearRangeRequestFinishedDelegate = OnClearRangeRequestFinished;
 
     //Construct Url
     FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
@@ -257,8 +257,8 @@ void USpreadsheetReadWrite::ClearRange(const FSpreadsheetCrendentials Credential
     USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::POST, ESpreadsheetReadWriteType::ClearRange);
 }
 
-void USpreadsheetReadWrite::Export(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FExportRequest ExportRequest, const FRequestFinished& OnExportRequestFinished) {
-    ExportRequestFinished = OnExportRequestFinished;
+void USpreadsheetReadWrite::Export(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FExportRequest ExportRequest, const FRequestFinishedDelegate& OnExportRequestFinished) {
+    ExportRequestFinishedDelegate = OnExportRequestFinished;
     LocalExportRequest = ExportRequest;
 
     //Construct Url
@@ -284,7 +284,7 @@ void USpreadsheetReadWrite::OnRequestReadCellFinished(FHttpRequestPtr Request, F
         }
     }
 
-    ReadCellRequestFinished.Execute(response, Success);
+    ReadCellRequestFinishedDelegate.Execute(response, Success);
 }
 
 void USpreadsheetReadWrite::OnRequestReadRangeFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
@@ -311,7 +311,7 @@ void USpreadsheetReadWrite::OnRequestReadRangeFinished(FHttpRequestPtr Request, 
         }
     }
 
-    ReadRangeRequestFinished.Execute(response, Success);
+    ReadRangeRequestFinishedDelegate.Execute(response, Success);
 }
 
 FString USpreadsheetReadWrite::OnRequestWriteToCellStarted(const FBaseRequest& BaseRequest, const FWriteToCellRequest& WriteToCellRequest)
@@ -338,7 +338,7 @@ FString USpreadsheetReadWrite::OnRequestWriteToCellStarted(const FBaseRequest& B
 
 void USpreadsheetReadWrite::OnRequestWriteToCellFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
 {
-    WriteToCellRequestFinished.Execute(Success);
+    WriteToCellRequestFinishedDelegate.Execute(Success);
 }
 
 FString USpreadsheetReadWrite::OnRequestWriteToRangeStarted(const FBaseRequest& BaseRequest, const FWriteToRangeRequest& WriteToRangeRequest)
@@ -382,17 +382,17 @@ FString USpreadsheetReadWrite::OnRequestWriteToRangeStarted(const FBaseRequest& 
 
 void USpreadsheetReadWrite::OnRequestWriteToRangeFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
 {
-    WriteToRangeRequestFinished.Execute(Success);
+    WriteToRangeRequestFinishedDelegate.Execute(Success);
 }
 
 void USpreadsheetReadWrite::OnRequestClearCellFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
 {
-    ClearCellRequestFinished.Execute(Success);
+    ClearCellRequestFinishedDelegate.Execute(Success);
 }
 
 void USpreadsheetReadWrite::OnRequestClearRangeFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
 {
-    ClearRangeRequestFinished.Execute(Success);
+    ClearRangeRequestFinishedDelegate.Execute(Success);
 }
 
 void USpreadsheetReadWrite::OnRequestExportFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
@@ -430,6 +430,6 @@ void USpreadsheetReadWrite::OnRequestExportFinished(FHttpRequestPtr Request, FHt
         }
     }
 
-    ExportRequestFinished.Execute(Success);
+    ExportRequestFinishedDelegate.Execute(Success);
 }
 #pragma endregion
