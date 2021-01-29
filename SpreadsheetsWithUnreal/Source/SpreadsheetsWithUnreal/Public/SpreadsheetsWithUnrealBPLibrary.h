@@ -3,9 +3,17 @@
 #pragma once
 
 #include "Kismet/BlueprintFunctionLibrary.h"
+
+#include "Http.h"
+#include "HttpModule.h"
+#include "Interfaces/IPluginManager.h"
+
 #include "Requests/Request.h"
 #include "Responses/Response.h"
 #include "Settings/CredentialSettings.h"
+#include "SpreadsheetsHttp.h"
+#include "SpreadsheetsFileSystem.h"
+
 #include "SpreadsheetsWithUnrealBPLibrary.generated.h"
 
 /*
@@ -30,77 +38,36 @@
  *	https://wiki.unrealengine.com/Custom_Blueprint_Node_Creation
  */
 
-class UDataTable;
-
-UENUM()
-enum ESpreadsheetHttpRequestType
-{
-    GET,
-    PUT,
-    POST
-};
-
-UENUM()
-enum ESpreadsheetReadWriteType
-{
-    ReadCell,
-    ReadRange,
-    Export,
-    WriteToCell,
-    WriteToRange,
-    AppendToTable,
-    ClearCell,
-    ClearRange,
-};
-
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FReadCellRequestFinishedDelegate, FReadCellResponse, ReadCellRequest, bool, Successful);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FReadRangeRequestFinishedDelegate, FReadRangeResponse, ReadRangeRequest, bool, Successful);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FRequestFinishedDelegate, bool, Successful);
 
-class USpreadsheetHttp
-{
-public:
-    static void SendRequest(const FSpreadsheetCrendentials Credentials, const FString Url, const TEnumAsByte<ESpreadsheetHttpRequestType> HttpRequestType, const TEnumAsByte<ESpreadsheetReadWriteType> SpreadsheetRequestType, const FString Body = FString(""));
-
-    static FString SetupTokenRequest(const FSpreadsheetCrendentials Credentials);
-};
-
 UCLASS()
-class USpreadsheetFileSystem : public UBlueprintFunctionLibrary
+class SPREADSHEETSWITHUNREAL_API USpreadsheetReadWrite : public UBlueprintFunctionLibrary
 {
     GENERATED_UCLASS_BODY()
 
 public:
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import CSV To Data Table", Keywords = "Data table import"), Category = "Spreadsheets With Unreal | Import")
-    static void ImportCSVToDataTable(const FString PathToCSVFile, UDataTable *DataTable);
+    UFUNCTION(BlueprintCallable, meta = (Keywords = "Spreadsheets Read"), Category = "Spreadsheets With Unreal | Read")
+    static void ReadCell(const FSpreadsheetCrendentials& Credentials, const struct FBaseRequest& BaseRequest, const struct FReadCellRequest& CellRequest, const FReadCellRequestFinishedDelegate& OnReadCellRequestFinished);
+    UFUNCTION(BlueprintCallable, meta = (Keywords = "Spreadsheets Read"), Category = "Spreadsheets With Unreal | Read")
+    static void ReadRange(const FSpreadsheetCrendentials& Credentials, const struct FBaseRequest& BaseRequest, const struct FReadRangeRequest& RangeRequest, const FReadRangeRequestFinishedDelegate& OnReadRangeRequestFinished);
 
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Spreadsheet Credentials", Keywords = "Spreadsheets settings"), Category = "Spreadsheets With Unreal | Settings")
-    static FSpreadsheetCrendentials GetSpreadsheetCredentials(const FString CredentialName);
-};
+    UFUNCTION(BlueprintCallable, meta = (Keywords = "Spreadsheets Write"), Category = "Spreadsheets With Unreal | Write")
+    static void WriteToCell(const FSpreadsheetCrendentials& Credentials, const struct FBaseRequest& BaseRequest, const struct FWriteToCellRequest& WriteToCellRequest, const FRequestFinishedDelegate& OnWriteToCellRequestFinished);
+    UFUNCTION(BlueprintCallable, meta = (Keywords = "Spreadsheets Write"), Category = "Spreadsheets With Unreal | Write")
+    static void WriteToRange(const FSpreadsheetCrendentials& Credentials, const struct FBaseRequest& BaseRequest, const struct FWriteToRangeRequest& WriteToRangeRequest, const FRequestFinishedDelegate& OnWriteToRangeRequestFinished);
 
-UCLASS()
-class USpreadsheetReadWrite : public UBlueprintFunctionLibrary
-{
-    GENERATED_UCLASS_BODY()
+    UFUNCTION(BlueprintCallable, meta = (Keywords = "Spreadsheets Append"), Category = "Spreadsheets With Unreal | Append")
+    static void AppendToTable(const FSpreadsheetCrendentials& Credentials, const struct FBaseRequest& BaseRequest, const struct FAppendToTableRequest& AppendToTableRequest, const FRequestFinishedDelegate& OnAppendToTableRequestFinished);
 
-public:
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Cell", Keywords = "Spreadsheets Read"), Category = "Spreadsheets With Unreal | Read")
-    static void ReadCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadCellRequest CellRequest, const FReadCellRequestFinishedDelegate &OnReadCellRequestFinished);
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Read Range", Keywords = "Spreadsheets Read"), Category = "Spreadsheets With Unreal | Read")
-    static void ReadRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadRangeRequest RangeRequest, const FReadRangeRequestFinishedDelegate &OnReadRangeRequestFinished);
+    UFUNCTION(BlueprintCallable, meta = (Keywords = "Spreadsheets Clear"), Category = "Spreadsheets With Unreal | Clear")
+    static void ClearCell(const FSpreadsheetCrendentials& Credentials, const struct FBaseRequest& BaseRequest, const struct FClearCellRequest& ClearCellRequest, const FRequestFinishedDelegate& OnClearCellRequestFinished);
+    UFUNCTION(BlueprintCallable, meta = (Keywords = "Spreadsheets Clear"), Category = "Spreadsheets With Unreal | Clear")
+    static void ClearRange(const FSpreadsheetCrendentials& Credentials, const struct FBaseRequest& BaseRequest, const struct FClearRangeRequest& ClearRangeRequest, const FRequestFinishedDelegate& OnClearRangeRequestFinished);
 
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Write To Cell", Keywords = "Spreadsheets Write"), Category = "Spreadsheets With Unreal | Write")
-    static void WriteToCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FWriteToCellRequest WriteToCellRequest, const FRequestFinishedDelegate &OnWriteToCellRequestFinished);
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Write To Range", Keywords = "Spreadsheets Write"), Category = "Spreadsheets With Unreal | Write")
-    static void WriteToRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FWriteToRangeRequest WriteToRangeRequest, const FRequestFinishedDelegate &OnWriteToRangeRequestFinished);
-
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Clear Cell", Keywords = "Spreadsheets Clear"), Category = "Spreadsheets With Unreal | Clear")
-    static void ClearCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FClearCellRequest ClearCellRequest, const FRequestFinishedDelegate &OnClearCellRequestFinished);
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Clear Range", Keywords = "Spreadsheets Clear"), Category = "Spreadsheets With Unreal | Clear")
-    static void ClearRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FClearRangeRequest ClearRangeRequest, const FRequestFinishedDelegate &OnClearRangeRequestFinished);
-
-    UFUNCTION(BlueprintCallable, meta = (DisplayName = "Export Spreadsheet", Keywords = "Spreadsheets Export"), Category = "Spreadsheets With Unreal | Export")
-    static void Export(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FExportRequest ExportRequest, const FRequestFinishedDelegate& OnExportRequestFinished);
+    UFUNCTION(BlueprintCallable, meta = (Keywords = "Spreadsheets Export"), Category = "Spreadsheets With Unreal | Export")
+    static void ExportSpreadsheet(const FSpreadsheetCrendentials& Credentials, const struct FBaseRequest& BaseRequest, const struct FExportRequest& ExportRequest, const FRequestFinishedDelegate& OnExportRequestFinished);
 
 private:
     static void OnRequestReadCellFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success);
@@ -111,13 +78,16 @@ private:
     static FString OnRequestWriteToRangeStarted(const FBaseRequest& BaseRequest, const FWriteToRangeRequest& WriteToRangeRequest);
     static void OnRequestWriteToRangeFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success);
 
+    static FString OnRequestAppendToTableStarted(const FBaseRequest& BaseRequest, const FAppendToTableRequest& WriteToRangeRequest);
+    static void OnRequestAppendToTableFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success);
+
     static void OnRequestClearCellFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success);
     static void OnRequestClearRangeFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success);
 
     static void OnRequestExportFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success);
 
 public:
-    friend class USpreadsheetHttp;
+    friend class FSpreadsheetsHttp;
 
 private:
     static FReadCellRequestFinishedDelegate ReadCellRequestFinishedDelegate;
@@ -125,6 +95,8 @@ private:
 
     static FRequestFinishedDelegate WriteToCellRequestFinishedDelegate;
     static FRequestFinishedDelegate WriteToRangeRequestFinishedDelegate;
+
+    static FRequestFinishedDelegate AppendToTableRequestFinishedDelegate;
 
     static FExportRequest LocalExportRequest;
     static FRequestFinishedDelegate ExportRequestFinishedDelegate;

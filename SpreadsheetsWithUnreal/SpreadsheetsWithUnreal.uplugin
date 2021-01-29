@@ -1,24 +1,24 @@
 {
-	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "1.0",
-	"FriendlyName": "SpreadsheetsWithUnreal",
-	"Description": "A plugin that handles a connection between Google Spreadsheets and Unreal",
-	"Category": "Other",
-	"CreatedBy": "Jens Petter",
-	"CreatedByURL": "https://jenspetter.nl/",
-	"DocsURL": "",
-	"MarketplaceURL": "",
-	"SupportURL": "",
-	"CanContainContent": true,
-	"IsBetaVersion": false,
-	"IsExperimentalVersion": false,
-	"Installed": false,
-	"Modules": [
-		{
-			"Name": "SpreadsheetsWithUnreal",
-			"Type": "Runtime",
-			"LoadingPhase": "PreLoadingScreen"
-		}
-	]
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "SpreadsheetsWithUnreal",
+  "Description": "A plugin that handles a connection between Google Spreadsheets and Unreal",
+  "Category": "Other",
+  "CreatedBy": "Jens Petter",
+  "CreatedByURL": "https://jenspetter.nl/",
+  "DocsURL": "",
+  "MarketplaceURL": "",
+  "SupportURL": "",
+  "CanContainContent": true,
+  "IsBetaVersion": false,
+  "IsExperimentalVersion": false,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "SpreadsheetsWithUnreal",
+      "Type": "Runtime",
+      "LoadingPhase": "PreLoadingScreen"
+    }
+  ]
 }

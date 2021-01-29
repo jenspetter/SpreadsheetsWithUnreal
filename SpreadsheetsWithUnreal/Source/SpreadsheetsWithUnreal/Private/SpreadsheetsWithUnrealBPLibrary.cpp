@@ -1,9 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "SpreadsheetsWithUnrealBPLibrary.h"
-#include "Http.h"
-#include "HttpModule.h"
-#include "Interfaces/IPluginManager.h"
 #include "SpreadsheetsWithUnreal.h"
 #include "JsonObjectConverter.h"
 
@@ -13,423 +10,423 @@ FReadRangeRequestFinishedDelegate USpreadsheetReadWrite::ReadRangeRequestFinishe
 FRequestFinishedDelegate USpreadsheetReadWrite::WriteToCellRequestFinishedDelegate;
 FRequestFinishedDelegate USpreadsheetReadWrite::WriteToRangeRequestFinishedDelegate;
 
+FRequestFinishedDelegate USpreadsheetReadWrite::AppendToTableRequestFinishedDelegate;
+
 FExportRequest USpreadsheetReadWrite::LocalExportRequest;
 FRequestFinishedDelegate USpreadsheetReadWrite::ExportRequestFinishedDelegate;
 
 FRequestFinishedDelegate USpreadsheetReadWrite::ClearCellRequestFinishedDelegate;
 FRequestFinishedDelegate USpreadsheetReadWrite::ClearRangeRequestFinishedDelegate;
 
-#pragma region Http
-void USpreadsheetHttp::SendRequest(const FSpreadsheetCrendentials Credentials, const FString Url, const TEnumAsByte<ESpreadsheetHttpRequestType> HttpRequestType, const TEnumAsByte<ESpreadsheetReadWriteType> SpreadsheetRequestType, const FString Body)
+USpreadsheetReadWrite::USpreadsheetReadWrite(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
+
+void USpreadsheetReadWrite::ReadCell(const FSpreadsheetCrendentials& Credentials, const struct FBaseRequest& BaseRequest, const struct FReadCellRequest& CellRequest, const FReadCellRequestFinishedDelegate& OnReadCellRequestFinished)
 {
-    const FString tokenUrl = SetupTokenRequest(Credentials);
+	ReadCellRequestFinishedDelegate = OnReadCellRequestFinished;
 
-    TSharedRef<IHttpRequest> tokenRequest = FHttpModule::Get().CreateRequest();
+	// Construct Url
+	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
+		BaseRequest.SheetId + FString("/values/") + BaseRequest.Tab +
+		FString("!") + CellRequest.CellLocation + FString("?access_token=");
 
-    FHttpRequestCompleteDelegate& tokenDelegate = tokenRequest->OnProcessRequestComplete();
-
-    tokenDelegate.BindLambda([&, Url, HttpRequestType, SpreadsheetRequestType, Body](FHttpRequestPtr request, FHttpResponsePtr response, bool success) {
-        TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-        const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(*response->GetContentAsString());
-
-        if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid())
-        {
-            const FString accessToken = JsonObject->GetStringField("access_token");
-            const FString extendedUrl = Url + accessToken;
-
-            TSharedRef<IHttpRequest> Request = FHttpModule::Get().CreateRequest();
-
-            FHttpRequestCompleteDelegate& del = Request->OnProcessRequestComplete();
-
-            switch (SpreadsheetRequestType)
-            {
-                case ESpreadsheetReadWriteType::ReadCell:
-                    del.BindStatic(&USpreadsheetReadWrite::OnRequestReadCellFinished);
-                    break;
-                case ESpreadsheetReadWriteType::ReadRange:
-                    del.BindStatic(&USpreadsheetReadWrite::OnRequestReadRangeFinished);
-                    break;
-                case ESpreadsheetReadWriteType::WriteToCell:
-                    del.BindStatic(&USpreadsheetReadWrite::OnRequestWriteToCellFinished);
-                    break;
-                case ESpreadsheetReadWriteType::WriteToRange:
-                    del.BindStatic(&USpreadsheetReadWrite::OnRequestWriteToRangeFinished);
-                    break;
-                case ESpreadsheetReadWriteType::ClearCell:
-                    del.BindStatic(&USpreadsheetReadWrite::OnRequestClearCellFinished);
-                    break;
-                case ESpreadsheetReadWriteType::ClearRange:
-                    del.BindStatic(&USpreadsheetReadWrite::OnRequestClearRangeFinished);
-                    break;
-                case ESpreadsheetReadWriteType::Export:
-                    del.BindStatic(&USpreadsheetReadWrite::OnRequestExportFinished);
-                    break;
-            }
-
-            Request->SetURL(extendedUrl);
-
-            switch (HttpRequestType)
-            {
-                case ESpreadsheetHttpRequestType::GET:
-                    Request->SetVerb("GET");
-                    break;
-                case ESpreadsheetHttpRequestType::PUT:
-                    Request->SetVerb("PUT");
-                    Request->SetContentAsString(Body);
-                    break;
-                case ESpreadsheetHttpRequestType::POST:
-                    Request->SetVerb("POST");
-                    Request->SetContentAsString(Body);
-                    break;
-            }
-            
-            Request->ProcessRequest();
-        }
-    });
-
-    tokenRequest->SetURL(tokenUrl);
-    tokenRequest->SetVerb("POST");
-    tokenRequest->ProcessRequest();
+	FSpreadsheetsHttp::SendRequest(Credentials, url, FSpreadsheetsHttp::ERequestType::Get, FSpreadsheetsHttp::EReadWriteType::ReadCell);
 }
 
-FString USpreadsheetHttp::SetupTokenRequest(const FSpreadsheetCrendentials Credentials) {
-    ///Get file path and load into string
-    const FString filePath = FPaths::ProjectContentDir() + FString("/") + Credentials.PathToOAuthCredentialsFile;
-    FString fileData = "";
-    FFileHelper::LoadFileToString(fileData, *filePath);
-
-    FString clientId;
-    FString clientSecret;
-    const FString refreshToken = Credentials.RefreshToken;
-
-    TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-    const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(fileData);
-
-    //Deserialize content of loaded file
-    if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid()) {
-        const TSharedPtr<FJsonObject> PersonObject = JsonObject->GetObjectField("web");
-
-        //Assigning properties
-        clientId = PersonObject->GetStringField("client_id");
-        clientSecret = PersonObject->GetStringField("client_secret");
-    }
-
-    //Construct Url
-    const FString url =
-        "https://accounts.google.com/o/oauth2/token?client_id=" + clientId +
-        FString("&client_secret=") + clientSecret + FString("&refresh_token=") +
-        refreshToken + FString("&grant_type=refresh_token");
-
-    return FString(url);
-}
-#pragma endregion Http
-
-#pragma region FileSystem
-USpreadsheetFileSystem::USpreadsheetFileSystem(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
-
-void USpreadsheetFileSystem::ImportCSVToDataTable(const FString PathToCSVFile, UDataTable* DataTable)
+void USpreadsheetReadWrite::ReadRange(const FSpreadsheetCrendentials& Credentials, const struct FBaseRequest& BaseRequest, const struct FReadRangeRequest& RangeRequest, const FReadRangeRequestFinishedDelegate& OnReadRangeRequestFinished)
 {
-    FString FileContent;
+	ReadRangeRequestFinishedDelegate = OnReadRangeRequestFinished;
 
-    FString path = FPaths::ProjectContentDir() + PathToCSVFile;
-    FFileHelper::LoadFileToString(FileContent, *path);
+	// Construct Url
+	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
+		BaseRequest.SheetId + FString("/values/") + BaseRequest.Tab +
+		FString("!") + RangeRequest.RangeLocationStart + FString(":") + RangeRequest.RangeLocationEnd + FString("?access_token=");
 
-    if (DataTable) {
-        TArray<FString> problems = DataTable->CreateTableFromCSVString(FileContent);
-
-        if (problems.Num() > 0) {
-            for (int32 ProbIdx = 0; ProbIdx < problems.Num(); ProbIdx++) {
-                // Erros detected
-            }
-            UE_LOG(LogTemp, Warning, TEXT("Data Table update failed"));
-        }
-        else {
-            UE_LOG(LogTemp, Warning, TEXT("Data Table updated successfully"));
-        }
-    }
-    else {
-        UE_LOG(LogTemp, Warning, TEXT("Data Table not found"));
-    }
+	FSpreadsheetsHttp::SendRequest(Credentials, url, FSpreadsheetsHttp::ERequestType::Get, FSpreadsheetsHttp::EReadWriteType::ReadRange);
 }
 
-FSpreadsheetCrendentials USpreadsheetFileSystem::GetSpreadsheetCredentials(const FString CredentialName) {
-    UCredentialSettings* m_EditorSettingsSingleton = nullptr;
-
-    if (!m_EditorSettingsSingleton) {
-        static const TCHAR* settingsContainerName = TEXT("SpreadsheetsWithUnreal");
-        m_EditorSettingsSingleton = FindObject<UCredentialSettings>(GetTransientPackage(), settingsContainerName);
-
-        if (!m_EditorSettingsSingleton) {
-            m_EditorSettingsSingleton = NewObject<UCredentialSettings>(GetTransientPackage(), UCredentialSettings::StaticClass(), settingsContainerName);
-            m_EditorSettingsSingleton->AddToRoot();
-        }
-    }
-
-    for (auto it = m_EditorSettingsSingleton->CredentialOptions.begin();
-        it != m_EditorSettingsSingleton->CredentialOptions.end(); ++it) {
-
-        if (it.Key() == CredentialName) {
-            return it.Value();
-        }
-    }
-
-    return FSpreadsheetCrendentials();
-}
-#pragma endregion FileSystem
-
-#pragma region ReadWrite
-USpreadsheetReadWrite::USpreadsheetReadWrite(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer){}
-
-void USpreadsheetReadWrite::ReadCell(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadCellRequest CellRequest, const FReadCellRequestFinishedDelegate &OnReadCellRequestFinished)
+void USpreadsheetReadWrite::WriteToCell(const FSpreadsheetCrendentials& Credentials, const FBaseRequest& BaseRequest, const FWriteToCellRequest& WriteToCellRequest, const FRequestFinishedDelegate& OnWriteToCellRequestFinished)
 {
-    ReadCellRequestFinishedDelegate = OnReadCellRequestFinished;
+	WriteToCellRequestFinishedDelegate = OnWriteToCellRequestFinished;
 
-    //Construct Url
-    FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
-                BaseRequest.SheetId + FString("/values/") + BaseRequest.Tab +
-                FString("!") + CellRequest.Cell + FString("?access_token=");
+	// Construct Url
+	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + BaseRequest.SheetId + FString("/values/") +
+		BaseRequest.Tab + FString("!") + WriteToCellRequest.CellToWriteTo + FString("?valueInputOption=RAW&access_token=");
 
-    USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::GET, ESpreadsheetReadWriteType::ReadCell);
+	// Get parsed body
+	FString body = OnRequestWriteToCellStarted(BaseRequest, WriteToCellRequest);
+
+	FSpreadsheetsHttp::SendRequest(Credentials, url, FSpreadsheetsHttp::ERequestType::Put, FSpreadsheetsHttp::EReadWriteType::WriteToCell, body);
 }
 
-void USpreadsheetReadWrite::ReadRange(const FSpreadsheetCrendentials Credentials, const struct FBaseRequest BaseRequest, const struct FReadRangeRequest RangeRequest, const FReadRangeRequestFinishedDelegate &OnReadRangeRequestFinished)
+void USpreadsheetReadWrite::WriteToRange(const FSpreadsheetCrendentials& Credentials, const FBaseRequest& BaseRequest, const FWriteToRangeRequest& WriteToRangeRequest, const FRequestFinishedDelegate& OnWriteToRangeRequestFinished)
 {
-    ReadRangeRequestFinishedDelegate = OnReadRangeRequestFinished;
+	WriteToRangeRequestFinishedDelegate = OnWriteToRangeRequestFinished;
 
-    //Construct Url
-    FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
-                BaseRequest.SheetId + FString("/values/") + BaseRequest.Tab +
-                FString("!") + RangeRequest.Range + FString("?access_token=");
+	// Construct Url
+	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + BaseRequest.SheetId + FString("/values/") +
+		BaseRequest.Tab + FString("!") + WriteToRangeRequest.RangeLocationStart + FString(":") + WriteToRangeRequest.RangeLocationEnd +
+		FString("?valueInputOption=RAW&access_token=");
 
-    USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::GET, ESpreadsheetReadWriteType::ReadRange);
+	// Get parsed body
+	FString body = OnRequestWriteToRangeStarted(BaseRequest, WriteToRangeRequest);
+
+	FSpreadsheetsHttp::SendRequest(Credentials, url, FSpreadsheetsHttp::ERequestType::Put, FSpreadsheetsHttp::EReadWriteType::WriteToRange, body);
 }
 
-void USpreadsheetReadWrite::WriteToCell(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FWriteToCellRequest WriteToCellRequest, const FRequestFinishedDelegate& OnWriteToCellRequestFinished)
+void USpreadsheetReadWrite::AppendToTable(const FSpreadsheetCrendentials& Credentials, const FBaseRequest& BaseRequest, const FAppendToTableRequest& AppendToTableRequest, const FRequestFinishedDelegate& OnAppendToTableRequestFinished)
 {
-    WriteToCellRequestFinishedDelegate = OnWriteToCellRequestFinished;
+	AppendToTableRequestFinishedDelegate = OnAppendToTableRequestFinished;
 
-    // Construct Url
-    FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + BaseRequest.SheetId + FString("/values/") +
-        BaseRequest.Tab + FString("!") + WriteToCellRequest.CellToWriteTo + FString("?valueInputOption=RAW&access_token=");
+	// Construct Url
+	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + BaseRequest.SheetId + FString("/values/") +
+		BaseRequest.Tab + FString("!") + AppendToTableRequest.RangeLocationStart + FString(":") + AppendToTableRequest.RangeLocationEnd +
+		FString(":append?valueInputOption=RAW&access_token=");
 
-    //Get parsed body
-    FString body = OnRequestWriteToCellStarted(BaseRequest, WriteToCellRequest);
+	// Get parsed body
+	FString body = OnRequestAppendToTableStarted(BaseRequest, AppendToTableRequest);
 
-    USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::PUT, ESpreadsheetReadWriteType::WriteToCell, body);
+	FSpreadsheetsHttp::SendRequest(Credentials, url, FSpreadsheetsHttp::ERequestType::Post, FSpreadsheetsHttp::EReadWriteType::AppendToTable, body);
 }
 
-void USpreadsheetReadWrite::WriteToRange(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FWriteToRangeRequest WriteToRangeRequest, const FRequestFinishedDelegate& OnWriteToRangeRequestFinished)
+void USpreadsheetReadWrite::ClearCell(const FSpreadsheetCrendentials& Credentials, const FBaseRequest& BaseRequest, const FClearCellRequest& ClearCellRequest, const FRequestFinishedDelegate& OnClearCellRequestFinished)
 {
-    WriteToRangeRequestFinishedDelegate = OnWriteToRangeRequestFinished;
+	ClearCellRequestFinishedDelegate = OnClearCellRequestFinished;
 
-    // Construct Url
-    FString url = "https://sheets.googleapis.com/v4/spreadsheets/" + BaseRequest.SheetId + FString("/values/") +
-        BaseRequest.Tab + FString("!") + WriteToRangeRequest.RangeToWriteTo +
-        FString("?valueInputOption=RAW&access_token=");
+	// Construct Url
+	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
+		BaseRequest.SheetId + FString("/values/") + BaseRequest.Tab +
+		FString("!") + ClearCellRequest.CellLocation + FString(":clear?access_token=");
 
-    // Get parsed body
-    FString body = OnRequestWriteToRangeStarted(BaseRequest, WriteToRangeRequest);
-
-    USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::PUT, ESpreadsheetReadWriteType::WriteToRange, body);
+	FSpreadsheetsHttp::SendRequest(Credentials, url, FSpreadsheetsHttp::ERequestType::Post, FSpreadsheetsHttp::EReadWriteType::ClearCell);
 }
 
-void USpreadsheetReadWrite::ClearCell(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FClearCellRequest ClearCellRequest, const FRequestFinishedDelegate& OnClearCellRequestFinished)
+void USpreadsheetReadWrite::ClearRange(const FSpreadsheetCrendentials& Credentials, const FBaseRequest& BaseRequest, const FClearRangeRequest& ClearRangeRequest, const FRequestFinishedDelegate& OnClearRangeRequestFinished)
 {
-    ClearCellRequestFinishedDelegate = OnClearCellRequestFinished;
+	ClearRangeRequestFinishedDelegate = OnClearRangeRequestFinished;
 
-    //Construct Url
-    FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
-        BaseRequest.SheetId + FString("/values/") + BaseRequest.Tab +
-        FString("!") + ClearCellRequest.Cell + FString(":clear?access_token=");
+	// Construct Url
+	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
+		BaseRequest.SheetId + FString("/values/") + BaseRequest.Tab +
+		FString("!") + ClearRangeRequest.RangeLocationStart + FString(":") + ClearRangeRequest.RangeLocationEnd + FString(":clear?access_token=");
 
-    USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::POST, ESpreadsheetReadWriteType::ClearCell);
+	FSpreadsheetsHttp::SendRequest(Credentials, url, FSpreadsheetsHttp::ERequestType::Post, FSpreadsheetsHttp::EReadWriteType::ClearRange);
 }
 
-void USpreadsheetReadWrite::ClearRange(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FClearRangeRequest ClearRangeRequest, const FRequestFinishedDelegate& OnClearRangeRequestFinished)
-{
-    ClearRangeRequestFinishedDelegate = OnClearRangeRequestFinished;
+void USpreadsheetReadWrite::ExportSpreadsheet(const FSpreadsheetCrendentials& Credentials, const FBaseRequest& BaseRequest, const FExportRequest& ExportRequest, const FRequestFinishedDelegate& OnExportRequestFinished) {
+	ExportRequestFinishedDelegate = OnExportRequestFinished;
+	LocalExportRequest = ExportRequest;
 
-    //Construct Url
-    FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
-        BaseRequest.SheetId + FString("/values/") + BaseRequest.Tab +
-        FString("!") + ClearRangeRequest.Range + FString(":clear?access_token=");
+	// Construct Url
+	FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
+		BaseRequest.SheetId + FString("/values/") + BaseRequest.Tab +
+		FString("!") + ExportRequest.RangeLocationStart + FString(":") + ExportRequest.RangeLocationEnd + FString("?access_token=");
 
-    USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::POST, ESpreadsheetReadWriteType::ClearRange);
-}
-
-void USpreadsheetReadWrite::Export(const FSpreadsheetCrendentials Credentials, const FBaseRequest BaseRequest, const FExportRequest ExportRequest, const FRequestFinishedDelegate& OnExportRequestFinished) {
-    ExportRequestFinishedDelegate = OnExportRequestFinished;
-    LocalExportRequest = ExportRequest;
-
-    //Construct Url
-    FString url = "https://sheets.googleapis.com/v4/spreadsheets/" +
-        BaseRequest.SheetId + FString("/values/") + BaseRequest.Tab +
-        FString("!") + ExportRequest.Range + FString("?access_token=");
-
-    USpreadsheetHttp::SendRequest(Credentials, url, ESpreadsheetHttpRequestType::GET, ESpreadsheetReadWriteType::Export);
+	FSpreadsheetsHttp::SendRequest(Credentials, url, FSpreadsheetsHttp::ERequestType::Get, FSpreadsheetsHttp::EReadWriteType::Export);
 }
 
 void USpreadsheetReadWrite::OnRequestReadCellFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
 {
-    FReadCellResponse response;
+	int responseCode = Response->GetResponseCode();
 
-    if (Success) {
-        TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-        const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(*Response->GetContentAsString());
+	FReadCellResponse response;
 
-        if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid()) {
-            auto doubleArrayResponse = JsonObject->GetArrayField("values");
-            auto elementOneResponse = doubleArrayResponse[0]->AsArray();
-            response.Cell = elementOneResponse[0]->AsString();
-        }
-    }
+	if (ReadCellRequestFinishedDelegate.IsBound())
+	{
+		if (responseCode != 400 && responseCode != 401 && Success)
+		{
+			TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+			const TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(*Response->GetContentAsString());
 
-    ReadCellRequestFinishedDelegate.Execute(response, Success);
+			if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid())
+			{
+				auto doubleArrayResponse = JsonObject->GetArrayField("values");
+				auto elementOneResponse = doubleArrayResponse[0]->AsArray();
+				response.CellContent = elementOneResponse[0]->AsString();
+			}
+
+			ReadCellRequestFinishedDelegate.Execute(response, Success);
+		}
+		else
+		{
+			ReadCellRequestFinishedDelegate.Execute(response, false);
+		}
+	}
 }
 
 void USpreadsheetReadWrite::OnRequestReadRangeFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
 {
-    FReadRangeResponse response;
-    if (Success) {
-        TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-        TSharedRef<TJsonReader<>> JsonReader =
-        TJsonReaderFactory<>::Create(*Response->GetContentAsString());
+	int responseCode = Response->GetResponseCode();
 
-        if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid()) {
-            auto firstDimension = JsonObject->GetArrayField("values");
+	FReadRangeResponse response;
 
-            for (auto dimensionElement: firstDimension) {
-                auto dimensionElementAsArray = dimensionElement->AsArray();
-                FSpreadsheetArray spreadsheetArray;
+	if (ReadRangeRequestFinishedDelegate.IsBound())
+	{
+		if (responseCode != 400 && responseCode != 401 && Success)
+		{
 
-                for (auto arrayElement : dimensionElementAsArray) {
-                    spreadsheetArray.Elements.Add(arrayElement->AsString());
-                }
+			TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+			TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(*Response->GetContentAsString());
 
-                response.Range.Add(spreadsheetArray);
-            }
-        }
-    }
+			if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid())
+			{
+				auto firstDimension = JsonObject->GetArrayField("values");
 
-    ReadRangeRequestFinishedDelegate.Execute(response, Success);
+				for (auto dimensionElement : firstDimension)
+				{
+					auto dimensionElementAsArray = dimensionElement->AsArray();
+					FSpreadsheetArray spreadsheetArray;
+
+					for (auto arrayElement : dimensionElementAsArray)
+					{
+						spreadsheetArray.Elements.Add(arrayElement->AsString());
+					}
+
+					response.RangeContent.Add(spreadsheetArray);
+				}
+			}
+
+			ReadRangeRequestFinishedDelegate.Execute(response, Success);
+		}
+		else
+		{
+			ReadRangeRequestFinishedDelegate.Execute(response, false);
+		}
+	}
 }
 
 FString USpreadsheetReadWrite::OnRequestWriteToCellStarted(const FBaseRequest& BaseRequest, const FWriteToCellRequest& WriteToCellRequest)
 {
-    TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
 
-    const FString range = BaseRequest.Tab + FString("!") + WriteToCellRequest.CellToWriteTo;
-    JsonObject->SetStringField("range", range);
-    JsonObject->SetStringField("majorDimension", "ROWS");
+	const FString range = BaseRequest.Tab + FString("!") + WriteToCellRequest.CellToWriteTo;
+	JsonObject->SetStringField("range", range);
+	JsonObject->SetStringField("majorDimension", "ROWS");
 
-    TArray<TSharedPtr<FJsonValue>> firstDimension;
-    TArray<TSharedPtr<FJsonValue>> spreadsheetArray;
-    spreadsheetArray.Add(MakeShareable(new FJsonValueString(WriteToCellRequest.NewCellContent)));
-    firstDimension.Add(MakeShareable(new FJsonValueArray(spreadsheetArray)));
+	TArray<TSharedPtr<FJsonValue>> firstDimension;
+	TArray<TSharedPtr<FJsonValue>> spreadsheetArray;
+	spreadsheetArray.Add(MakeShareable(new FJsonValueString(WriteToCellRequest.NewCellContent)));
+	firstDimension.Add(MakeShareable(new FJsonValueArray(spreadsheetArray)));
 
-    JsonObject->SetArrayField("values", firstDimension);
+	JsonObject->SetArrayField("values", firstDimension);
 
-    FString OutputString;
-    const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
-    FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+	FString OutputString;
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
 
-    return FString(OutputString);
+	return FString(OutputString);
 }
 
 void USpreadsheetReadWrite::OnRequestWriteToCellFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
 {
-    WriteToCellRequestFinishedDelegate.Execute(Success);
+	int responseCode = Response->GetResponseCode();
+
+	if (WriteToCellRequestFinishedDelegate.IsBound())
+	{
+		if (responseCode != 400 && responseCode != 401 && Success)
+		{
+			WriteToCellRequestFinishedDelegate.Execute(Success);
+		}
+		else
+		{
+			WriteToCellRequestFinishedDelegate.Execute(false);
+		}
+	}
 }
 
 FString USpreadsheetReadWrite::OnRequestWriteToRangeStarted(const FBaseRequest& BaseRequest, const FWriteToRangeRequest& WriteToRangeRequest)
 {
-    TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
 
-    const FString range = BaseRequest.Tab + FString("!") + WriteToRangeRequest.RangeToWriteTo;
-    JsonObject->SetStringField("range", range);
+	const FString range = BaseRequest.Tab + FString("!") + WriteToRangeRequest.RangeLocationStart + FString(":") + WriteToRangeRequest.RangeLocationEnd;
+	JsonObject->SetStringField("range", range);
 
-    if(WriteToRangeRequest.Dimension == ESpreadsheetDimension::COLUMNS)
-    {
-        JsonObject->SetStringField("majorDimension", "COLUMNS");
-    }
-    else
-    {
-        JsonObject->SetStringField("majorDimension", "ROWS");
-    }
+	if (WriteToRangeRequest.Dimension == ESpreadsheetDimension::Columns)
+	{
+		JsonObject->SetStringField("majorDimension", "COLUMNS");
+	}
+	else
+	{
+		JsonObject->SetStringField("majorDimension", "ROWS");
+	}
 
-    TArray<TSharedPtr<FJsonValue>> firstDimension;
+	TArray<TSharedPtr<FJsonValue>> firstDimension;
 
-    for (FSpreadsheetArray spreadsheetArray : WriteToRangeRequest.NewRangeContent)
-    {
-        TArray<TSharedPtr<FJsonValue>> spreadsheetJsonArray;
-        
-        for (FString element : spreadsheetArray.Elements)
-        {
-            spreadsheetJsonArray.Add(MakeShareable(new FJsonValueString(element)));
-        }
+	for (FSpreadsheetArray spreadsheetArray : WriteToRangeRequest.NewRangeContent)
+	{
+		TArray<TSharedPtr<FJsonValue>> spreadsheetJsonArray;
 
-        firstDimension.Add(MakeShareable(new FJsonValueArray(spreadsheetJsonArray)));
-    }
-    
-    JsonObject->SetArrayField("values", firstDimension);
+		for (FString element : spreadsheetArray.Elements)
+		{
+			spreadsheetJsonArray.Add(MakeShareable(new FJsonValueString(element)));
+		}
 
-    FString OutputString;
-    const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
-    FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
-    UE_LOG(LogTemp, Warning, TEXT("%S"), *OutputString);
-    return FString(OutputString);
+		firstDimension.Add(MakeShareable(new FJsonValueArray(spreadsheetJsonArray)));
+	}
+
+	JsonObject->SetArrayField("values", firstDimension);
+
+	FString OutputString;
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+	return FString(OutputString);
 }
 
 void USpreadsheetReadWrite::OnRequestWriteToRangeFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
 {
-    WriteToRangeRequestFinishedDelegate.Execute(Success);
+	int responseCode = Response->GetResponseCode();
+
+	if (WriteToRangeRequestFinishedDelegate.IsBound())
+	{
+		if (responseCode != 400 && responseCode != 401 && Success)
+		{
+			WriteToRangeRequestFinishedDelegate.Execute(Success);
+		}
+		else
+		{
+			WriteToRangeRequestFinishedDelegate.Execute(false);
+		}
+	}
+}
+
+FString USpreadsheetReadWrite::OnRequestAppendToTableStarted(const FBaseRequest& BaseRequest, const FAppendToTableRequest& WriteToRangeRequest)
+{
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+
+	const FString range = BaseRequest.Tab + FString("!") + WriteToRangeRequest.RangeLocationStart + FString(":") + WriteToRangeRequest.RangeLocationEnd;
+	JsonObject->SetStringField("range", range);
+
+	if (WriteToRangeRequest.Dimension == ESpreadsheetDimension::Columns)
+	{
+		JsonObject->SetStringField("majorDimension", "COLUMNS");
+	}
+	else
+	{
+		JsonObject->SetStringField("majorDimension", "ROWS");
+	}
+
+	TArray<TSharedPtr<FJsonValue>> firstDimension;
+
+	for (FSpreadsheetArray spreadsheetArray : WriteToRangeRequest.NewTableContent)
+	{
+		TArray<TSharedPtr<FJsonValue>> spreadsheetJsonArray;
+
+		for (FString element : spreadsheetArray.Elements)
+		{
+			spreadsheetJsonArray.Add(MakeShareable(new FJsonValueString(element)));
+		}
+
+		firstDimension.Add(MakeShareable(new FJsonValueArray(spreadsheetJsonArray)));
+	}
+
+	JsonObject->SetArrayField("values", firstDimension);
+
+	FString OutputString;
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+	return FString(OutputString);
+}
+
+void USpreadsheetReadWrite::OnRequestAppendToTableFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
+{
+	int responseCode = Response->GetResponseCode();
+
+	if (AppendToTableRequestFinishedDelegate.IsBound())
+	{
+		if (responseCode != 400 && responseCode != 401 && Success)
+		{
+			AppendToTableRequestFinishedDelegate.Execute(Success);
+		}
+		else
+		{
+			AppendToTableRequestFinishedDelegate.Execute(false);
+		}
+	}
 }
 
 void USpreadsheetReadWrite::OnRequestClearCellFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
 {
-    ClearCellRequestFinishedDelegate.Execute(Success);
+	int responseCode = Response->GetResponseCode();
+
+	if (ClearCellRequestFinishedDelegate.IsBound())
+	{
+		if (responseCode != 400 && responseCode != 401 && Success)
+		{
+			ClearCellRequestFinishedDelegate.Execute(Success);
+		}
+		else
+		{
+			ClearCellRequestFinishedDelegate.Execute(false);
+		}
+	}
 }
 
 void USpreadsheetReadWrite::OnRequestClearRangeFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
 {
-    ClearRangeRequestFinishedDelegate.Execute(Success);
+	int responseCode = Response->GetResponseCode();
+
+	if (ClearRangeRequestFinishedDelegate.IsBound())
+	{
+		if (responseCode != 400 && responseCode != 401 && Success)
+		{
+			ClearRangeRequestFinishedDelegate.Execute(Success);
+		}
+		else
+		{
+			ClearRangeRequestFinishedDelegate.Execute(false);
+		}
+	}
 }
 
 void USpreadsheetReadWrite::OnRequestExportFinished(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Success)
 {
-    if (Success) {
-        TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-        TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(*Response->GetContentAsString());
+	int responseCode = Response->GetResponseCode();
 
-        if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid()) {
-            auto doubleArrayResponse = JsonObject->GetArrayField("values");
-            FString content = "";
+	if (ExportRequestFinishedDelegate.IsBound())
+	{
+		if (responseCode != 400 && responseCode != 401 && Success)
+		{
+			TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+			TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(*Response->GetContentAsString());
 
-            for (auto arr : doubleArrayResponse) {
-                auto elResponse = arr->AsArray();
-                for (int i = 0; i < elResponse.Num(); ++i) {
-                    FString element = elResponse[i]->AsString();
+			if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid())
+			{
+				auto doubleArrayResponse = JsonObject->GetArrayField("values");
+				FString content = "";
 
-                    if (i != 0) {
-                        content += FString(",");
-                    }
+				for (auto arr : doubleArrayResponse)
+				{
+					auto elResponse = arr->AsArray();
+					for (int i = 0; i < elResponse.Num(); ++i)
+					{
+						FString element = elResponse[i]->AsString();
 
-                    if (element.Contains(",")) {
-                        content += FString("\"") + element += FString("\"");
-                    }
-                    else {
-                        content += element;
-                    }
-                }
-                content += FString("\n");
-            }
+						if (i != 0)
+						{
+							content += FString(",");
+						}
 
-            FString path = FPaths::ProjectContentDir() + LocalExportRequest.OutputDestination;
+						if (element.Contains(","))
+						{
+							content += FString("\"") + element += FString("\"");
+						}
+						else
+						{
+							content += element;
+						}
+					}
+					content += FString("\n");
+				}
 
-            FFileHelper::SaveStringToFile(content, *path);
-        }
-    }
+				FString path = FPaths::ProjectContentDir() + LocalExportRequest.OutputDestination;
 
-    ExportRequestFinishedDelegate.Execute(Success);
+				FFileHelper::SaveStringToFile(content, *path);
+			}
+
+			ExportRequestFinishedDelegate.Execute(Success);
+		}
+		else
+		{
+			ExportRequestFinishedDelegate.Execute(false);
+		}
+	}
 }
-#pragma endregion
