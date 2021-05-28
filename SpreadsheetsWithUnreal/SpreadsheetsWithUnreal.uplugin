@@ -14,11 +14,16 @@
   "IsBetaVersion": false,
   "IsExperimentalVersion": false,
   "Installed": false,
-  "Modules": [
-    {
-      "Name": "SpreadsheetsWithUnreal",
-      "Type": "Runtime",
-      "LoadingPhase": "PreLoadingScreen"
-    }
-  ]
+    "Modules": [
+        {
+            "Name": "SpreadsheetsWithUnreal",
+            "Type": "Runtime",
+            "LoadingPhase": "PreLoadingScreen"
+        },
+        {
+            "Name": "SpreadsheetsWithUnrealEditor",
+            "Type": "Editor",
+            "LoadingPhase": "PostEngineInit"
+        }
+    ]
 }

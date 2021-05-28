@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class SpreadsheetsWithUnreal : ModuleRules
+public class SpreadsheetsWithUnrealEditor : ModuleRules
 {
-	public SpreadsheetsWithUnreal(ReadOnlyTargetRules Target) : base(Target)
+	public SpreadsheetsWithUnrealEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -14,14 +14,23 @@ public class SpreadsheetsWithUnreal : ModuleRules
                 "Core",
                 "CoreUObject",
                 "Engine",
-                "HTTP",
-                "Json",
-                "JsonUtilities",
-                "Slate",
-                "SlateCore"
+                "InputCore",
+                "UnrealEd"
             });
 
-        PublicDependencyModuleNames.AddRange(new string[] { "SpreadsheetsWithUnrealEditor" });
+        PublicDependencyModuleNames.AddRange(new string[] { "SpreadsheetsWithUnreal" });
+
+        PublicIncludePaths.AddRange(
+            new string[]
+            {
+                "SpreadsheetsWithUnrealEditor/Public"
+            });
+
+        PrivateIncludePaths.AddRange(
+            new string[]
+            {
+                "SpreadsheetsWithUnrealEditor/Private"
+            });
 
         if (Target.Type == TargetRules.TargetType.Editor)
         {
