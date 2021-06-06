@@ -17,4 +17,16 @@ Below is found a list of features that are currently supported in the plugin or 
 | Adding / removing tabs                | :x:                | - |
 
 ## Getting started with the project
-This plugin is currently not in the Unreal Marketplace, therefore one needs to manually download this plugin and put it in the plugin map of the desired project.
+This plugin is currently not in the Unreal Marketplace, therefore one needs to manually download this plugin and put it in the plugin map of the desired project. Shown below are tutorials that will help you get started with this plugin in Unreal.
+
+## Tutorials
+| Tutorial  | Link |
+| ---      | ---       |
+| Downloading and setting up your project to use this plugin     | - | - |
+| Credentials     | - | - |
+| Reading cells / ranges     | - | - |
+| Writing to cells / ranges     | - | - |
+| Appending to a table     | - | - |
+| Downloading Spreadsheets     | - | - |
+| Adding / removing rows     | - | - |
+| Adding / removing tabs     | - | - |
